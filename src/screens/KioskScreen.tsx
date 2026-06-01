@@ -2427,8 +2427,10 @@ const KioskScreen: React.FC<KioskScreenProps> = ({ navigation }) => {
               }}
               onPageNavigated={(navUrl: string) => {
                 currentWebViewUrlRef.current = navUrl;
-                // Reset inactivity timer on page navigation if enabled
-                if (inactivityReturnResetOnNav) {
+                // In dashboard mode (viewing a tile), always reset the inactivity timer on
+                // any page navigation so self-refreshing pages don't trigger an unexpected
+                // return to the grid. For non-dashboard mode, respect the user setting.
+                if (inactivityReturnResetOnNav || (dashboardModeEnabled && !dashboardShowGrid)) {
                   markUserInteraction();
                 }
               }}
