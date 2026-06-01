@@ -93,8 +93,8 @@ const RecurringEventEditor: React.FC<RecurringEventEditorProps> = ({
     if (!isValidTime(endTime)) {
       return 'Please enter a valid end time (HH:MM)';
     }
-    if (startTime >= endTime) {
-      return 'End time must be after start time';
+    if (startTime === endTime) {
+      return 'Start time and end time cannot be the same';
     }
     return null;
   };

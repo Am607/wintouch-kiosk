@@ -83,11 +83,18 @@ export const isEventActive = (event: ScheduledEvent): boolean => {
   const currentDate = now.toISOString().split('T')[0];
   
   if (event.type === 'recurring') {
-    // Check if today is one of the scheduled days
-    if (!event.days?.includes(currentDay)) return false;
-    
-    // Check if current time is within the time range
     if (event.startTime && event.endTime) {
+      const isOvernight = event.startTime > event.endTime;
+      if (isOvernight) {
+        // Before-midnight portion: today must be a scheduled day and time >= startTime
+        if (event.days?.includes(currentDay) && currentTime >= event.startTime) return true;
+        // After-midnight portion: yesterday must be a scheduled day and time < endTime
+        const yesterday = (currentDay + 6) % 7;
+        if (event.days?.includes(yesterday) && currentTime < event.endTime) return true;
+        return false;
+      }
+      // Normal (same-day) range
+      if (!event.days?.includes(currentDay)) return false;
       return currentTime >= event.startTime && currentTime < event.endTime;
     }
     return false;
