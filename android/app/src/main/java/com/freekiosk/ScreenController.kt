@@ -81,6 +81,25 @@ object ScreenController {
                 wakeLock?.release()
                 wakeLock = null
 
+                // Clear persistent wake flags so the activity does not auto-wake the screen
+                // the next time it is brought to front (#screen-auto-wake).
+                val activity = reactContext.currentActivity
+                if (activity != null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                        try {
+                            activity.setTurnScreenOn(false)
+                            activity.setShowWhenLocked(false)
+                        } catch (_: Exception) { /* best-effort */ }
+                    } else {
+                        @Suppress("DEPRECATION")
+                        activity.window.clearFlags(
+                            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                            WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+                        )
+                    }
+                }
+
                 val dpm = reactContext.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
                 val adminComp = ComponentName(reactContext, DeviceAdminReceiver::class.java)
 

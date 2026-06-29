@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 
 /**
@@ -101,6 +102,15 @@ class KioskWatchdogService : Service() {
         if (!isKioskEnabled()) {
             DebugLog.d(TAG, "Kiosk mode disabled — stopping watchdog")
             stopSelf()
+            return
+        }
+
+        // Don't relaunch while the screen is off. The user (or scheduled sleep) has
+        // intentionally locked the device — bringing MainActivity to front via
+        // startActivity would wake the screen back up and prevent the device from
+        // sleeping, draining the battery (#screen-auto-wake).
+        if (!isScreenOn()) {
+            DebugLog.d(TAG, "Screen is off — skipping watchdog relaunch")
             return
         }
 
@@ -220,6 +230,16 @@ class KioskWatchdogService : Service() {
         } catch (e: Exception) {
             DebugLog.d(TAG, "Cannot read external_app_package: ${e.message}")
             null
+        }
+    }
+
+    private fun isScreenOn(): Boolean {
+        return try {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            pm.isInteractive
+        } catch (e: Exception) {
+            // If we can't tell, assume on so we don't break the relaunch guarantee
+            true
         }
     }
 

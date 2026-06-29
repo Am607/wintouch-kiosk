@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 
 /**
@@ -97,6 +98,15 @@ class BackgroundAppMonitorService : Service() {
      * Check if keep-alive apps are running and relaunch if needed.
      */
     private fun checkAndRelaunchApps() {
+        // Don't relaunch while the screen is off — the user has intentionally locked
+        // the device and relaunching a managed app would bring FreeKiosk to the front
+        // (via bringFreeKioskToFront) and wake the screen, killing the battery
+        // (#screen-auto-wake).
+        if (!isScreenOn()) {
+            DebugLog.d(TAG, "Screen is off, skipping relaunch check")
+            return
+        }
+
         // Don't relaunch if FreeKiosk is NOT in the foreground
         // (user might be in Settings, PIN screen, or another flow)
         if (!isFreeKioskInForeground()) {
@@ -126,6 +136,16 @@ class BackgroundAppMonitorService : Service() {
                 relaunchApp(packageName)
                 relaunchTimestamps[packageName] = now
             }
+        }
+    }
+
+    private fun isScreenOn(): Boolean {
+        return try {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            pm.isInteractive
+        } catch (e: Exception) {
+            // If we can't tell, assume on so we don't break keep-alive behavior
+            true
         }
     }
 

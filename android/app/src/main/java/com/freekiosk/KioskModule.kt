@@ -485,15 +485,32 @@ class KioskModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
             wakeLock?.release()
             
             // Create WakeLock to turn on screen
+            // IMPORTANT: short timeout — we only need the wakelock to TRIGGER the wake,
+            // not to keep the screen on afterwards. FLAG_KEEP_SCREEN_ON handles the latter.
+            // A long-held FULL_WAKE_LOCK forces the screen at full brightness and prevents
+            // the SoC from idling — major battery drain (#screen-auto-wake).
             @Suppress("DEPRECATION")
             wakeLock = powerManager.newWakeLock(
-                PowerManager.FULL_WAKE_LOCK or 
-                PowerManager.ACQUIRE_CAUSES_WAKEUP or 
+                PowerManager.FULL_WAKE_LOCK or
+                PowerManager.ACQUIRE_CAUSES_WAKEUP or
                 PowerManager.ON_AFTER_RELEASE,
                 "FreeKiosk:ScreenOn"
             )
-            wakeLock?.acquire(10*60*1000L) // 10 minutes timeout
+            wakeLock?.acquire(5_000L) // 5s — enough to wake the screen, then release
             android.util.Log.d("KioskModule", "WakeLock acquired to turn screen ON")
+
+            // Release the wakelock proactively after 5s in case the OS does not honor
+            // the timeout precisely. Without this, the wakelock keeps the CPU awake and
+            // burns battery long after the screen is up.
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                try {
+                    if (wakeLock?.isHeld == true) {
+                        wakeLock?.release()
+                        android.util.Log.d("KioskModule", "ScreenOn WakeLock released after 5s")
+                    }
+                    wakeLock = null
+                } catch (_: Exception) { /* already released */ }
+            }, 5_000L)
             
             val activity = reactApplicationContext.currentActivity
             if (activity != null) {
@@ -559,6 +576,25 @@ class KioskModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaM
                     try {
                         val dpm = reactApplicationContext.getSystemService(Context.DEVICE_POLICY_SERVICE) as android.app.admin.DevicePolicyManager
                         val adminComponent = ComponentName(reactApplicationContext, DeviceAdminReceiver::class.java)
+                        // Clear persistent wake flags so the activity does not auto-wake
+                        // the screen the next time it is resumed (e.g. by KioskWatchdog,
+                        // BackgroundAppMonitor, MQTT keep-alive, or system relaunch).
+                        // Without this, setTurnScreenOn(true) set by turnScreenOn() leaks
+                        // across screen-off cycles and causes unexpected wakes (#screen-auto-wake).
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
+                            try {
+                                activity.setTurnScreenOn(false)
+                                activity.setShowWhenLocked(false)
+                            } catch (_: Exception) { /* best-effort */ }
+                        } else {
+                            @Suppress("DEPRECATION")
+                            activity.window.clearFlags(
+                                android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                                android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                                android.view.WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
+                            )
+                        }
+
                         if (dpm.isDeviceOwnerApp(reactApplicationContext.packageName) || dpm.isAdminActive(adminComponent)) {
                             // Device Owner OR Device Admin: lockNow() is available to both
                             wakeLock?.release()
