@@ -237,7 +237,7 @@ const ExternalAppOverlay: React.FC<ExternalAppOverlayProps> = ({
             style={styles.miniLogo}
             resizeMode="contain"
           />
-          <Text style={styles.multiAppTitle}>FreeKiosk</Text>
+          <Text style={styles.multiAppTitle}>Wintouch Kiosk</Text>
         </View>
         <FlatList
           data={homeScreenApps}
@@ -306,7 +306,7 @@ const ExternalAppOverlay: React.FC<ExternalAppOverlayProps> = ({
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>FreeKiosk</Text>
+          <Text style={styles.title}>Wintouch Kiosk</Text>
           <Text style={styles.subtitle}>External App Mode</Text>
 
           {/* Status Message */}

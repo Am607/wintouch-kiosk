@@ -731,7 +731,7 @@ const WebViewComponent = forwardRef<WebViewComponentRef, WebViewComponentProps>(
             </View>
 
             {/* Title */}
-            <Text style={styles.welcomeTitle}>FreeKiosk</Text>
+            <Text style={styles.welcomeTitle}>wintouch kiosk</Text>
             <Text style={styles.welcomeSubtitle}>
               Professional Kiosk Application
             </Text>
@@ -1106,7 +1106,7 @@ const styles = StyleSheet.create({
   // WELCOME SCREEN STYLES
   welcomeContainer: {
     flex: 1,
-    backgroundColor: '#0066cc',
+    backgroundColor: '#602D49',
   },
   scrollContent: {
     flexGrow: 1,
@@ -1189,7 +1189,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   setupButtonText: {
-    color: '#0066cc',
+    color: '#602D49',
     fontSize: 18,
     fontWeight: 'bold',
   },
